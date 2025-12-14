@@ -8,6 +8,7 @@
         <module>profile-service</module>
         <module>matching-service</module>
         <module>operator-service</module>
+        <module>gateway-service</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
