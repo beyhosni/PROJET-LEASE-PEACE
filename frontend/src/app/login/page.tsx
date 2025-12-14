@@ -15,6 +15,8 @@ export default function LoginPage() {
         try {
             const response = await api.post('/auth/login', { email, password });
             localStorage.setItem('token', response.data.token);
+            localStorage.setItem('userId', response.data.userId); // Storing ID for easy access
+            localStorage.setItem('role', response.data.role); // Storing role for easy access
             router.push('/dashboard'); // Will be created next
         } catch (err) {
             setError('Login failed. Check credentials.');

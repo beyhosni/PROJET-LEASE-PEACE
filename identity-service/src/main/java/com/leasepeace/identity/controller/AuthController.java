@@ -26,7 +26,7 @@ public class AuthController {
     public record AuthRequest(String email, String password) {
     }
 
-    public record AuthResponse(String token) {
+    public record AuthResponse(String token, java.util.UUID userId, String role) {
     }
 
     @PostMapping("/login")
@@ -39,7 +39,7 @@ public class AuthController {
             // Service)
             if (user.getPasswordHash().equals("HASH_" + request.password())) {
                 String token = jwtService.generateToken(user.getId(), user.getRole().name());
-                return ResponseEntity.ok(new AuthResponse(token));
+                return ResponseEntity.ok(new AuthResponse(token, user.getId(), user.getRole().name()));
             }
         }
         return ResponseEntity.status(401).body("Invalid credentials");
