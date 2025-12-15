@@ -33,4 +33,9 @@ public class UserProfileController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<UserProfile>> getAllProfiles() {
+        return ResponseEntity.ok(profileRepository.findAll());
+    }
 }

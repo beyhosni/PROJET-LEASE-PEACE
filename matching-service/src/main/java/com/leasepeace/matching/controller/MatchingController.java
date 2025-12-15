@@ -26,4 +26,13 @@ public class MatchingController {
         var result = matchingEngine.calculateMatch(request.profileA(), request.profileB());
         return ResponseEntity.ok(new MatchResponse(result.score(), result.explanation()));
     }
+
+    public record BatchMatchRequest(Map<String, Object> myProfile, java.util.List<Map<String, Object>> candidates) {
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<java.util.List<MatchingEngine.BatchMatchResult>> batchMatch(
+            @RequestBody BatchMatchRequest request) {
+        return ResponseEntity.ok(matchingEngine.calculateBatch(request.myProfile(), request.candidates()));
+    }
 }

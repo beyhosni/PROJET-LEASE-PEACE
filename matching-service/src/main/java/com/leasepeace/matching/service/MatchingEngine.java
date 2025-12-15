@@ -35,4 +35,18 @@ public class MatchingEngine {
 
     public record MatchResult(int score, String explanation) {
     }
+
+    public record BatchMatchResult(Map<String, Object> candidateProfile, MatchResult result) {
+    }
+
+    public List<BatchMatchResult> calculateBatch(Map<String, Object> targetProfile,
+            List<Map<String, Object>> candidates) {
+        return candidates.stream()
+                .map(candidate -> {
+                    MatchResult result = calculateMatch(targetProfile, candidate);
+                    return new BatchMatchResult(candidate, result);
+                })
+                .sorted((a, b) -> Integer.compare(b.result.score(), a.result.score()))
+                .collect(Collectors.toList());
+    }
 }
