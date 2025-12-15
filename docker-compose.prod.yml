@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # --- Databases ---
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: lp_user
+      POSTGRES_PASSWORD: lp_password
+      POSTGRES_DB: lease_peace
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lp_user -d lease_peace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:6-alpine
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - lp-network
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - lp-network
+
+  # --- Microservices ---
+  identity-service:
+    build: ./identity-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/lease_peace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lp-network
+
+  profile-service:
+    build: ./profile-service
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/lease_peace
+    depends_on:
+      - mongodb
+    networks:
+      - lp-network
+
+  matching-service:
+    build: ./matching-service
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      - redis
+    networks:
+      - lp-network
+
+  operator-service:
+    build: ./operator-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/lease_peace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lp-network
+
+  gateway-service:
+    build: ./gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      PROFILE_SERVICE_URL: http://profile-service:8082
+      MATCHING_SERVICE_URL: http://matching-service:8083
+      OPERATOR_SERVICE_URL: http://operator-service:8084
+    depends_on:
+      - identity-service
+      - profile-service
+      - matching-service
+      - operator-service
+    networks:
+      - lp-network
+
+  # --- Frontend ---
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    # IMPORTANT: Next.js SSR needs access to Gateway via internal Docker network
+    # Client-side (Browser) access goes to localhost:8080 (Mapped port)
+    # But rewrites occur server-side in Next.js too.
+    # We might need an environment variable for API_URL distinct for server vs client.
+    # For MVP Proxy config: Proxying to 'http://localhost:8080' in next.config.mjs works for CLIENT side.
+    # For SERVER side fetching (SSR), localhost refers to container itself.
+    # We'll stick to client-side fetching as implemented mostly.
+    networks:
+      - lp-network
+
+volumes:
+  postgres_data:
+  mongo_data:
+
+networks:
+  lp-network:
+    driver: bridge
